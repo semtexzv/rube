@@ -1,0 +1,117 @@
+syntax = "proto3";
+package api.systemd;
+
+import "rube/api.proto";
+
+//message UnitInstance {
+//  optional Ref unit = 1;
+//  optional string target = 2;
+//  enum Strategy {
+//    FILE = 0;
+//    TRANSIENT = 1;
+//  }
+//  optional Strategy strategy = 3;
+//}
+
+message UnitDeployment {
+  optional Ref unit = 1;
+  repeated string targets = 2;
+  enum Strategy {
+    FILE = 0;
+    TRANSIENT = 1;
+  }
+  optional Strategy strategy = 3;
+}
+
+message Unit {
+  string description = 1;
+  repeated string doc_url = 2;
+  repeated string wants = 3;
+  repeated string requires = 4;
+  repeated string requisite = 5;
+  repeated string binds_to = 6;
+  repeated string part_of = 7;
+
+  oneof details {
+    Service service = 20;
+    Socket socket = 21;
+  }
+}
+
+
+message Service {
+  enum Type {
+    SIMPLE = 0;
+    EXEC = 1;
+    FORKING = 2;
+    ONESHOT = 3;
+    DBUS = 4;
+    NOTIFY = 5;
+    IDLE = 6;
+  }
+  enum ExitType {
+    MAIN = 0;
+    CGROUP = 1;
+  }
+  string title = 1;
+  Type type = 2;
+  ExitType exit_type = 3;
+  bool remain_after_exit = 4;
+  bool guess_pid = 5;
+  string pid_file = 6;
+  string bus_name = 7;
+  message Exec {
+    string start = 1;
+    repeated string pre_start = 2;
+    repeated string post_start = 3;
+    repeated string condition = 4;
+    repeated string reload = 5;
+    repeated string stop = 6;
+    repeated string post_stop = 7;
+  }
+  Exec exec = 8;
+  message Time {
+    int32 restart = 1;
+    int32 start_timeout = 2;
+    int32 stop_timeout = 3;
+    int32 abort_timeout = 4;
+    int32 timeout = 5;
+    int32 limit = 6;
+    int32 watchdog = 7;
+  }
+  Time time = 9;
+  enum Restart {
+    NO = 0;
+    ON_SUCCESS = 1;
+    ON_FAILURE = 2;
+    ON_ABNORMAL = 3;
+    ON_ABORT = 4;
+    ALWAYS = 5;
+  }
+  Restart restart = 10;
+  message Status {
+    repeated int32 success = 1;
+    repeated int32 prevent_restart = 2;
+    repeated int32 force_restart = 3;
+  }
+  Status status = 11;
+  bool non_blocking = 12;
+  enum NotifyAccess {
+    ACCESS_NO = 0;
+    ACCESS_MAIN = 1;
+    ACCESS_EXEC = 2;
+    ACCESS_ALL = 3;
+  }
+  NotifyAccess notify_access = 13;
+  repeated string sockets = 14;
+  enum OOMPolicy {
+    CONTINUE = 0;
+    STOP = 1;
+    KILL = 2;
+  }
+  OOMPolicy oom_policy = 15;
+}
+
+message Socket {
+  string path = 1;
+}

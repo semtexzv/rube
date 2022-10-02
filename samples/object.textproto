@@ -1,0 +1,20 @@
+# proto-file: api.proto
+# proto-message: Object
+
+metadata {
+  namespace: "system"
+  name: "main-worker"
+}
+
+spec {
+  [rube/api.systemd.Unit] {
+    description: "Hello"
+    doc_url: "file://"
+    wants: "graphical.target"
+    service {
+      title: "Don't run this without consulting me firtst"
+      type: FORKING
+    }
+  }
+}
+

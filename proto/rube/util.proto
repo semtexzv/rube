@@ -1,0 +1,10 @@
+syntax = "proto3";
+package api;
+
+message FieldPath {
+    repeated int32 path = 1 [packed = true];
+}
+
+message FieldMask {
+    repeated FieldPath paths = 1;
+}

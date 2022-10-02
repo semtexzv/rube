@@ -1,0 +1,142 @@
+syntax = "proto3";
+package api;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
+
+message Ref {
+  optional string namespace = 1;
+  optional string name = 2;
+}
+
+message TypedRef {
+  optional string namespace = 1;
+  optional string name = 2;
+  optional string type = 3;
+}
+
+message Object {
+  optional Meta metadata = 1;
+  optional google.protobuf.Any spec = 2;
+  uint64 revision = 3;
+}
+
+message List {
+  repeated Object object = 1;
+}
+
+message PatchOp {
+  enum Kind {
+    MERGE = 0;
+    REPLACE = 1;
+    REMOVE = 2;
+  }
+  Kind kind = 1;
+  string path = 2;
+}
+
+message Patch {
+  repeated PatchOp op = 1;
+  google.protobuf.Any spec = 2;
+}
+
+message Meta {
+  optional string namespace = 1;
+  string name = 2;
+}
+
+message PutRequest {
+  repeated Object object = 1;
+//  Meta metadata = 1;
+//  google.protobuf.Any spec = 2;
+}
+
+message PutResponse {
+  Meta metadata = 1;
+  google.protobuf.Any spec = 2;
+  uint64 revision = 3;
+}
+
+message PatchRequest {
+  Meta metadata = 1;
+  repeated Patch patch = 2;
+}
+
+message PatchResponse {
+  Meta metadata = 1;
+  google.protobuf.Any spec = 2;
+  uint64 revision = 3;
+}
+
+message GetRequest {
+  Meta metadata = 1;
+  string type = 2;
+}
+
+message GetResponse {
+  Meta metadata = 1;
+  google.protobuf.Any spec = 2;
+  uint64 revision = 3;
+}
+
+message WatchRequest {
+  optional string namespace = 1;
+  optional string name = 2;
+  optional uint64 from_revision = 3;
+
+  string type = 4;
+}
+
+message WatchResponse {
+  message Update {
+    Meta metadata = 1;
+    google.protobuf.Any spec = 2;
+    uint64 revision = 3;
+  }
+
+  message Delete {
+    Meta metadata = 1;
+    google.protobuf.Any spec = 2;
+    uint64 revision = 3;
+  }
+
+  oneof change {
+    Update update = 1;
+    Delete delete = 2;
+  }
+}
+
+message ListRequest {
+  optional string namespace = 1;
+  optional string type = 2;
+}
+
+message ListResponse {
+  repeated Object object = 1;
+}
+
+message DeleteRequest {
+  Meta metadata = 1;
+  string type = 2;
+}
+
+message DeleteResponse {
+  Meta metadata = 1;
+  google.protobuf.Any spec = 2;
+  uint64 revision = 3;
+}
+
+message Registry {
+  repeated string type = 1;
+}
+
+service Api {
+  rpc Put(PutRequest) returns (PutResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc List(ListRequest) returns (ListResponse);
+  rpc Patch(PatchRequest) returns (PatchResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+
+  rpc Watch(WatchRequest) returns (stream WatchResponse);
+  rpc Inspect(google.protobuf.Empty) returns (Registry);
+}

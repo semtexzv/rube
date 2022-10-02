@@ -1,0 +1,41 @@
+# proto-file: api.proto
+# proto-message: PatchRequest
+ 
+metadata {
+  namespace: "system"
+  name: "main-worker"
+}
+
+patch {
+  op {
+    kind: MERGE
+    path: "wants"
+  }
+  op {
+    kind: REPLACE
+    path: "sevice"
+  }
+  op {
+    kind: MERGE
+    path: "documentation"
+  }
+  op {
+    kind: REMOVE
+    path: "wants.1"
+  }
+  spec {
+    [rube/api.Unit] {
+      description: "Hello"
+      doc_url: "file://"
+      wants: "graphical.target"
+      service {
+        title: "Don't run this without consulting me firtst"
+        type: FORKING
+      }
+      documentation {
+        locale: "asa"
+      }
+    }    
+  }
+}
+

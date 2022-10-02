@@ -1,0 +1,7 @@
+# proto-file: api.proto
+# proto-message: ListRequest
+
+namespace: "system"
+type: "api.systemd.Unit"
+
+

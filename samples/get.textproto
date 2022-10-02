@@ -1,0 +1,8 @@
+# proto-file: api.proto
+# proto-message: GetRequest
+
+metadata {
+  namespace: "system"
+  name: "indexer"
+}
+type: "api.systemd.Unit"

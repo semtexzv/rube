@@ -1,0 +1,10 @@
+# proto-file: api.proto
+# proto-message: DeleteRequest
+ 
+metadata {
+    namespace: "system"
+    name: "indexer"
+}
+type: "api.systemd.Unit"
+
+

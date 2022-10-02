@@ -1,0 +1,19 @@
+[package]
+name = "rubeapi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+futures = "0.3"
+async-trait = "0.1.57"
+
+#tonic = { version = "0.7", default-features = false }
+protokit = { path = "../../protokit/protokit", features = [] }
+
+[build-dependencies]
+protokit_codegen = { path = "../../protokit/protokit_codegen", features = [
+    "descriptors",
+] }

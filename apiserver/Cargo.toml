@@ -1,0 +1,25 @@
+[package]
+name = "apiserver"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.58"
+async-trait = "0.1.56"
+
+#etcdapi = { path = "../etcdapi" }
+rubeapi = { path = "../rubeapi" }
+chdb = { path = "../deps/chdb" }
+
+lebe = "0.5.1"
+
+futures = "0.3.21"
+tokio = { version = "1.19.2", features = ["macros", "rt-multi-thread"] }
+tonic = { version = "0.7.2", default-features = false }
+protokit = { path = "../../protokit/protokit", features = ["descriptors"] }
+
+tracing = "0.1.35"
+tracing-subscriber = "0.3.14"
+tonic-reflection = "0.4.0"
+
+[build-dependencies]

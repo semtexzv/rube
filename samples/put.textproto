@@ -1,0 +1,57 @@
+# proto-file: api.proto
+# proto-message: List
+# proto-import: rube/systemd/unit.proto
+
+object {
+  metadata {
+    namespace: "system"
+    name: "indexer"
+  }
+
+  spec {
+    [rube/api.systemd.Unit] {
+      description: "hey"
+      doc_url: "file://"
+      wants: "graphical.target"
+      service {
+        title: "Don't run this without consulting me first"
+        type: FORKING
+        pid_file: "/blablabla/pid"
+        exec {
+          start: "echo \"Hey You!\""
+        }
+        time {
+          restart: 60
+          timeout: 30
+          limit: 3600
+          watchdog: 60
+        }
+        restart: ON_FAILURE
+        status {
+          success: [0, 1, 2]
+          prevent_restart: [66]
+        }
+        oom_policy: KILL
+      }
+    }
+  }
+}
+
+object {
+  metadata {
+    namespace: "system"
+    name: "indexer"
+  }
+  spec {
+    [rube/api.systemd.UnitDeployment] {
+      unit {
+        namespace: "system"
+        name: "indexer"
+      }
+      targets: "node-1"
+      targets: "node-2"
+      targets: "node-3"
+      strategy: TRANSIENT
+    }
+  }
+}

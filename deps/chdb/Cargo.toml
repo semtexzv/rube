@@ -1,0 +1,23 @@
+[package]
+name = "chdb"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1.57"
+futures = "0.3.23"
+itertools = "0.10.3"
+tokio = { version = "1.20.1", features = ["full"] }
+tokio-stream = "0.1.9"
+openraft = "0.7.1"
+thiserror = "1.0.32"
+serde = "1.0.143"
+
+heed = { version = "0.11.0", features = [] }
+smallvec = { version = "1.9.0", features = ["union", "const_new"]}
+
+irbtree = { path = "../irbtree" }
+[dev-dependencies]
+tempdir = "0.3.7"
+quickcheck = { version = "1.0.3" }
+quickcheck_macros = "1.0.0"
