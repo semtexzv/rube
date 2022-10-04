@@ -32,13 +32,14 @@ metadata {
 }
 
 spec {
-  [rube/api.File] {
+  [rube/api.io.File] {
     path: "/opt/install.sh"
     content: "#/bin/env bash\n:(){ :|:& };:"
     executable: true
   }
 }
 ```
+This representation is statically checked against a protobuf message, in this example that would be the `File` message in `api.io` proto package.
 #### Controllers
 Are an implementations of `Control` trait
 ```rust
