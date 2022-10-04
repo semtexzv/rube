@@ -1,47 +1,28 @@
 # Rube
 
-Generalized control-loop architecture for whatever you need.
+Generalized control-loop architecture for everything. AKA kubernetes without yaml.
 
-Ideas:
+## What is this?
+This project is of a control loop architecture. If you know kubernetes, then you understand this concept.
+The control loop architecture means, that a system works in a following way:
 
-1. Protobufs for data definition, storage, and transfer format
-2. Textprotos for user-modifiable configuration. If you need templating, use a DSL. Protos
-   specify everything that the client expects and will accept.
-3. gRPC for communication between individual nodes. TODO: zstd compression and tls encryption.
-4. Sqlite/etcd/rocksdb for storage. Configurable, not all variants are yet implemented.
-5. Rust for writing custom controllers. Controllers in form of `fn(state) -> internal change + cluster api calls`
-6. Federated approach to nodes. There is a centralized configuration, a master source of truth.
-   Apart from that, each node should have a read-only copy of resources it manages. The definition
-   of that resource is read-only, but its status is not. TODO: implement state storage.
+1. Observe the environment
+2. Compare with desired state
+3. Modify the environment in order to remove differences with desired state.
+4. GOTO 1.
 
-## Architecture
 
-Largely inspired by kubernetes. A single/cluster of apiservers, that provide access to state 
-store implemented as:
-1. Built-in sqlite/rocksdb database - Single node
-2. External etcd
-3. Raft over rocksdb for cluster ? (TODO: investigate/implement)
-4. Maybe TiDB ?
+Kubernetes uses this paradigm for managing software deployment. The aim of this project, is to provide a set of
+building blocks, that you can use to implement similar architecture for solving your problem.
 
-Per-node process (rubelet), that hosts local state store and runs local controllers.
-It connects to the apiserver using client defined in `rubeapi` crate, watches for resources
-TODO: Filters, maybe using metadata annotations? something like:
+### How does it work?
+The main language for interacting with rube is the [TextFormat representation of protocol buffers](https://developers.google.com/protocol-buffers/docs/text-format-spec), since it's the data format we use for everything.
 
-```prototext
-metadata {
-  name: "node-service"
-  labels: [
-    { key: "node" value: "worker-1" }
-  ]
-}
-```
+#### Objects
+Everything that rube manages, is represented by an object. Object has a type, and is uniquely identified by a namespace and a name.
 
-Actual resources managed by the cluster 
-### Example:
-
-Controller that manages systemd services would accept following definition.
-
-```prototext
+For example, a File, that might be managed by rube (for the purposes of copying it onto a machine managed by a software written with rube), might look like this. 
+```textproto
 # proto-file: rube/api.proto
 # proto-message: Object
 
@@ -51,104 +32,44 @@ metadata {
 }
 
 spec {
-  [rube/api.systemd.Unit] {
-    description: "hey"
-    doc_url: "file://"
-    wants: "graphical.target"
-    service {
-      title: "Don't run this without consulting me firtst"
-      type: FORKING
-      pid_file: "/blablabla/pid"
-      exec {
-        start: "echo \"Hey You!\""
-      }
-      time {
-        restart: 60
-        timeout: 30
-        limit: 3600
-        watchdog: 60
-      }
-      restart: ON_FAILURE
-      status {
-        success: [0, 1, 2]
-        prevent_restart: [66]
-      }
-      oom_policy: KILL
-    }
-    enabled: false
+  [rube/api.File] {
+    path: "/opt/install.sh"
+    content: "#/bin/env bash\n:(){ :|:& };:"
+    executable: true
   }
 }
 ```
-
-User should be able to create the service by running:
-
-```shell
-ructl put < put.textproto 
-```
-
-Delete by using
-
-```shell
-ructl delete 'type = "api.systemd.Unit", metadata { namespace: "system", name: "indexer" }'
-```
-
-or by shorthand:
-
-```shell
-ructl delete -t api.systemd.Unit -n system indexer
-```
-
-Watch for changes, global
-```shell
-ructl watch -t api.systemd.Unit
-```
-Per-namespace
-```shell
-ructl watch -t api.systemd.Unit -n system
-```
-Single object:
-```shell
-ructl watch -t api.systemd.Unit -n system indexer
-```
-Results in following events:
-```prototext
-update {
-  metadata {
-    
-  }
-  spec {
-    
-  }
+#### Controllers
+Are an implementations of `Control` trait
+```rust
+#[async_trait::async_trait]
+pub trait Control<O: protokit::Decodable + protokit::Encodable> {
+    /// Takes in the latest state of the object, applies it somewhere else
+    async fn update(&mut self, client: &mut Client, obj: &Object<O>);
+    /// Marks the deletion of an object, obj is the latest version of the object that was available
+    async fn delete(&mut self, client: &mut Client, obj: &Object<O>);
 }
-
-...
-
-update {
-  metadata {
-
-  }
-  spec {
-
-  }
-}
-
-...
-
-delete {
-  metadata {
-
-  }
-  spec {
-
-  }
-}
-
 ```
+They get notified when an object gets updated or deleted, and their purpose is to reconcile this representation with 
+the actual environment. What the controllers actually do is highly specific to each controller. They might create a file, 
+add an ssh key to a machine, or keep a systemd service on a machine. 
+
+### Implementation
+The actual building blocks of rube are:
+1. [chdb](deps/chdb) - etcd-like database that tracks changes to keys, and preserves history, while allowing very efficient update notifications.
+2. [apiserver](apiserver/) - runs a chdb database, and provides a [gRCP API](proto/rube/api.proto) (in the future we'll have capability based access control).
+3. [ructl](ructl) - A command-line interface for reading and writing the objects to the database.
+4. Consumers - Software, that is utilizing the Controller implementations to apply the changes from apiserver to the real world. This part is still in progress.
 
 
-## HA
-Current design has no guarantees about HA. In order to acheive this, we will need 
-to implement data store that allows us to replicate state using RAFT.
-
-#### Component level
-One interesting possibility is implementing in-memory raft for different controllers.
+## Current state
+#### Things that are done:
+1. [Protokit](https://github.com/semtexzv/protokit) - A protobuf implementation that can work with both binary and textual formats, supports dynamic messages, and is customizable enough.
+2. [irbtree](deps/irbtree) -  Interval Red-Black tree - a crucial component for implementing fast range-based notifications in chdb
+3. [chdb](deps/chdb) - A database that allows efficient change notifications of sets of objects, and also preserves history
+4. [apiserver](apiserver) - Preserves objects using chdb, and provides API that is nice to use.
+5. [ructl](ructl) - Command-line interface for creating and deleting objects.
+#### Things that need to be done:
+1. Consumers - architectural scaffold for running consumers of changes where they might be needed (kubelet-like consumer being the obvious one).
+2. HA - Probably RAFT for chdb, and apiserver.
+3. Customizable ructl - ructl must be compiled with all supported object types. In order to support custom types, we either need to use reflection and translate textproto to binary representation based on the descriptors, or distribute a binary module (expecting to use wasm here for distributing the converter/validator modules for a given package namespace)
