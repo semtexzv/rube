@@ -98,10 +98,8 @@ async fn unsync(
     to_unblocked: UnboundedSender<Watcher>,
     kv: Arc<RwLock<KV>>,
 ) {
-    // We can have a situation here watcher keeps ping ponging between queues.
-    // Maybe there is a solution, where we don't use a watchgroup here, but a straight up vector
-    // Because on each iteration, we just go through all watchers, and either shove them into a blocked
-    // queue, or back into the unblocked tree.
+    // On each iteration, we just go through all watchers, and either shove them into a blocked
+    // queue, or back into the unblocked search tree.
     loop {
         // Task waits for channels to clean up before trying to sync them
         tokio::time::sleep(Duration::from_millis(50)).await;
@@ -129,7 +127,7 @@ async fn unsync(
                     }
                     Err(TrySendError::Full(full_entry)) => {
                         // Drop the iterator to satisfy the borrow checker, the iterator might
-                        // use the key reference from the watcher struct, and if it is dropped after the
+                        // use the SlicePtr reference from the watcher struct, and if it is dropped after the
                         // watcher, then we'd be pointing to already freed memory
                         drop(it);
                         // Blocked when sending last entry, send watcher to blocked queue
@@ -142,7 +140,7 @@ async fn unsync(
                     }
                 }
             }
-            // We have sucessfully processed all stored entries, sending to unblocked queue.
+            // We have sucessfully processed all stored entries, sending this watcher to unblocked queue.
             drop(it);
             let _ = to_unblocked.send(watcher);
         }
@@ -153,8 +151,9 @@ impl DB {
     pub fn new(
         path: impl AsRef<Path>,
     ) -> Result<(Self, BoxFuture<'static, ()>, BoxFuture<'static, ()>)> {
-        // Using unbounded channes for sending watchers. Their actual size is bounded by number of
-        // watchers in the system, since they are never cloned, just copied around.
+        // Using unbounded channels for sending watchers. Their actual size is bounded by number of
+        // watchers in the system, since they are never cloned, just copied around. Also reduces complexity 
+        // of the implementation. 
         let (synctx, syncrx) = tokio::sync::mpsc::unbounded_channel::<Watcher>();
         let (blocktx, blockrx) = tokio::sync::mpsc::unbounded_channel::<(Watcher, LogEntryOwned)>();
 
