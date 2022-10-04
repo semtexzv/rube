@@ -1,6 +1,6 @@
 # Rube
 
-Generalized control-loop architecture for everything. AKA kubernetes without yaml.
+Generalized control-loop architecture for everything. AKA kubernetes without yaml or containers.
 
 ## What is this?
 This project is of a control loop architecture. If you know kubernetes, then you understand this concept.
